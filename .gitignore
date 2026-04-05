@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+target/
+.anchor/
+test-ledger/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+.vercel
