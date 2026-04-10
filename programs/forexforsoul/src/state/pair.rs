@@ -14,6 +14,8 @@ pub struct TradingPair {
     pub open_interest_short: u64,
     pub total_volume: u64,
     pub spread_bps: u16,          // adaptive spread
+    pub last_price: u64,           // current price scaled by 1e8
+    pub price_updated_at: i64,     // unix timestamp of last update
     pub is_active: bool,
     pub bump: u8,
 }

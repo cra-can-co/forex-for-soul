@@ -9,3 +9,6 @@ pub const BPS_DENOMINATOR: u64 = 10_000;
 
 // liquidation threshold: maintenance margin = 1%
 pub const MAINTENANCE_MARGIN_BPS: u64 = 100;
+
+// max age of price feed before considered stale (60 seconds)
+pub const MAX_PRICE_AGE: i64 = 60;
