@@ -4,7 +4,7 @@ use crate::errors::ForexError;
 use crate::constants::*;
 
 #[derive(Accounts)]
-pub struct ClosePosition<'info> {
+pub struct LiquidatePosition<'info> {
     #[account(
         mut,
         seeds = [EXCHANGE_SEED],
@@ -15,37 +15,40 @@ pub struct ClosePosition<'info> {
         mut,
         seeds = [PAIR_SEED, pair.base_currency.as_bytes(), pair.quote_currency.as_bytes()],
         bump = pair.bump,
-        constraint = pair.key() == position.pair @ ForexError::Unauthorized,
+        constraint = pair.is_active @ ForexError::PairNotActive,
     )]
     pub pair: Account<'info, TradingPair>,
     #[account(
         mut,
-        close = trader,
+        close = liquidator,
+        constraint = position.pair == pair.key() @ ForexError::Unauthorized,
         constraint = position.trader == trader.key() @ ForexError::Unauthorized,
     )]
     pub position: Account<'info, Position>,
+    /// CHECK: original trader, validated via position.trader constraint
+    pub trader: AccountInfo<'info>,
     #[account(mut)]
-    pub trader: Signer<'info>,
+    pub liquidator: Signer<'info>,
 }
 
-pub fn handler(ctx: Context<ClosePosition>) -> Result<()> {
+pub fn handler(ctx: Context<LiquidatePosition>) -> Result<()> {
     let clock = Clock::get()?;
     let pair = &ctx.accounts.pair;
     let position = &ctx.accounts.position;
 
-    require!(pair.last_price > 0, ForexError::OracleStale);
+    // price must be fresh
     require!(
         clock.unix_timestamp.checked_sub(pair.price_updated_at)
             .ok_or(ForexError::MathOverflow)? < MAX_PRICE_AGE,
         ForexError::OracleStale
     );
 
-    let exit_price = pair.last_price;
+    let current_price = pair.last_price;
 
-    // P&L calculation
+    // calc unrealized pnl
     let pnl: i64 = match position.side {
         Side::Long => {
-            (exit_price as i64)
+            (current_price as i64)
                 .checked_sub(position.entry_price as i64)
                 .ok_or(ForexError::MathOverflow)?
                 .checked_mul(position.size as i64)
@@ -55,7 +58,7 @@ pub fn handler(ctx: Context<ClosePosition>) -> Result<()> {
         },
         Side::Short => {
             (position.entry_price as i64)
-                .checked_sub(exit_price as i64)
+                .checked_sub(current_price as i64)
                 .ok_or(ForexError::MathOverflow)?
                 .checked_mul(position.size as i64)
                 .ok_or(ForexError::MathOverflow)?
@@ -64,15 +67,29 @@ pub fn handler(ctx: Context<ClosePosition>) -> Result<()> {
         },
     };
 
+    // maintenance margin check
+    let maintenance = (position.size as i64)
+        .checked_mul(MAINTENANCE_MARGIN_BPS as i64)
+        .ok_or(ForexError::MathOverflow)?
+        .checked_div(BPS_DENOMINATOR as i64)
+        .ok_or(ForexError::MathOverflow)?;
+
+    let equity = (position.collateral as i64)
+        .checked_add(pnl)
+        .ok_or(ForexError::MathOverflow)?;
+
+    // position must be unhealthy to liquidate
+    require!(equity <= maintenance, ForexError::PositionHealthy);
+
     // update open interest
     match position.side {
         Side::Long => {
-            ctx.accounts.pair.open_interest_long = pair.open_interest_long
+            ctx.accounts.pair.open_interest_long = ctx.accounts.pair.open_interest_long
                 .checked_sub(position.size)
                 .ok_or(ForexError::MathOverflow)?;
         },
         Side::Short => {
-            ctx.accounts.pair.open_interest_short = pair.open_interest_short
+            ctx.accounts.pair.open_interest_short = ctx.accounts.pair.open_interest_short
                 .checked_sub(position.size)
                 .ok_or(ForexError::MathOverflow)?;
         },
@@ -82,26 +99,7 @@ pub fn handler(ctx: Context<ClosePosition>) -> Result<()> {
         .checked_add(position.size)
         .ok_or(ForexError::MathOverflow)?;
 
-    // transfer payout from exchange PDA to trader
-    let payout = (position.collateral as i64)
-        .checked_add(pnl)
-        .ok_or(ForexError::MathOverflow)?;
-
-    if payout > 0 {
-        let payout_amount = payout as u64;
-        let exchange_info = ctx.accounts.exchange.to_account_info();
-        let trader_info = ctx.accounts.trader.to_account_info();
-        **exchange_info.try_borrow_mut_lamports()? = exchange_info
-            .lamports()
-            .checked_sub(payout_amount)
-            .ok_or(ForexError::MathOverflow)?;
-        **trader_info.try_borrow_mut_lamports()? = trader_info
-            .lamports()
-            .checked_add(payout_amount)
-            .ok_or(ForexError::MathOverflow)?;
-    }
-
-    msg!("closed position — entry: {}, exit: {}, pnl: {}", position.entry_price, exit_price, pnl);
+    msg!("liquidated position, equity: {}, maintenance: {}", equity, maintenance);
 
     Ok(())
 }

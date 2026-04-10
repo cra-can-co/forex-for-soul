@@ -117,11 +117,27 @@ async def run_price_crank():
     print(f"[price] found {len(resp.value)} program accounts")
     print("[price] mock price update cycle — pairs discovered from on-chain data")
 
+    PAIR_SEED = b"pair"
+
     for pair_name, feed_id in PYTH_FEEDS.items():
         price = await fetch_pyth_price(feed_id)
         if price is None:
             price = await mock_price(pair_name)
         print(f"[price] {pair_name}: {price / 1e8:.5f}")
+
+        base_cur, quote_cur = pair_name.split("/")
+        pair_pda, _ = Pubkey.find_program_address(
+            [PAIR_SEED, base_cur.encode(), quote_cur.encode()],
+            program_id,
+        )
+
+        sig = await update_pair_price(
+            client, authority, program_id, exchange_pda, pair_pda, price,
+        )
+        if sig:
+            print(f"[price] {pair_name} updated: {sig[:16]}...")
+        else:
+            print(f"[price] {pair_name} update failed")
 
     await client.close()
     print("[price] cycle done")
