@@ -9,7 +9,7 @@ forexforsoul = "ERSbyEx6s4MJnAem1vjmZW8Wv2cQdx1U4Fytuo6qy8ro"
 
 [provider]
 cluster = "devnet"
-wallet = "~/.config/solana/id.json"
+wallet = "./deploy-keypair.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
