@@ -1,13 +1,24 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
+import { useProgram, useReadonlyProgram, getExchangePDA, getPairPDA } from './lib/useProgram';
+import { PAIRS_CONFIG, PRICE_DECIMALS, PROGRAM_ID } from './lib/constants';
 
-const PAIRS = [
-  { symbol: 'EUR/USD', price: 1.0842, change: +0.12, spread: 0.8 },
-  { symbol: 'GBP/USD', price: 1.2651, change: -0.08, spread: 1.1 },
-  { symbol: 'USD/JPY', price: 157.32, change: +0.24, spread: 0.9 },
-  { symbol: 'AUD/USD', price: 0.6534, change: -0.15, spread: 1.2 },
-];
+interface PairData {
+  base: string;
+  quote: string;
+  symbol: string;
+  price: number;
+  rawPrice: number;
+  spread: number;
+  oiLong: number;
+  oiShort: number;
+  isActive: boolean;
+  pda: PublicKey;
+}
 
 function generateCandles(basePrice: number, count: number) {
   const candles = [];
@@ -31,24 +42,76 @@ function generateCandles(basePrice: number, count: number) {
 }
 
 export default function TradePage() {
-  const [activePair, setActivePair] = useState(PAIRS[0]);
+  const { publicKey } = useWallet();
+  const { program } = useProgram();
+  const { program: readonlyProgram } = useReadonlyProgram();
+
+  const [pairs, setPairs] = useState<PairData[]>([]);
+  const [activePairIdx, setActivePairIdx] = useState(0);
   const [side, setSide] = useState<'long' | 'short'>('long');
   const [leverage, setLeverage] = useState(5);
   const [size, setSize] = useState('100');
+  const [txState, setTxState] = useState<'idle' | 'building' | 'signing' | 'confirming' | 'done' | 'error'>('idle');
+  const [txError, setTxError] = useState('');
+  const [txSig, setTxSig] = useState('');
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<any>(null);
 
+  // fetch pairs from chain
+  const fetchPairs = useCallback(async () => {
+    if (!readonlyProgram) return;
+    const loaded: PairData[] = [];
+    for (const cfg of PAIRS_CONFIG) {
+      try {
+        const pda = getPairPDA(cfg.base, cfg.quote);
+        const acc = await (readonlyProgram.account as any).tradingPair.fetch(pda);
+        const rawPrice = Number(acc.lastPrice);
+        loaded.push({
+          base: cfg.base,
+          quote: cfg.quote,
+          symbol: `${cfg.base}/${cfg.quote}`,
+          price: rawPrice > 0 ? rawPrice / PRICE_DECIMALS : cfg.displayPrice,
+          rawPrice,
+          spread: Number(acc.spreadBps) / 10,
+          oiLong: Number(acc.openInterestLong),
+          oiShort: Number(acc.openInterestShort),
+          isActive: acc.isActive,
+          pda,
+        });
+      } catch {
+        // pair not created yet — use defaults
+        const pda = getPairPDA(cfg.base, cfg.quote);
+        loaded.push({
+          base: cfg.base,
+          quote: cfg.quote,
+          symbol: `${cfg.base}/${cfg.quote}`,
+          price: cfg.displayPrice,
+          rawPrice: 0,
+          spread: 1.0,
+          oiLong: 0,
+          oiShort: 0,
+          isActive: false,
+          pda,
+        });
+      }
+    }
+    setPairs(loaded);
+  }, [readonlyProgram]);
+
+  useEffect(() => { fetchPairs(); }, [fetchPairs]);
+
+  // chart
+  const activePair = pairs[activePairIdx] || {
+    symbol: 'EUR/USD', price: 1.0842, spread: 1.0, isActive: false,
+    base: 'EUR', quote: 'USD', pda: PublicKey.default, rawPrice: 0, oiLong: 0, oiShort: 0,
+  };
+
   useEffect(() => {
     if (!chartRef.current) return;
-
     let cancelled = false;
-
     import('lightweight-charts').then(({ createChart }) => {
       if (cancelled || !chartRef.current) return;
-
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.remove();
-      }
+      if (chartInstanceRef.current) chartInstanceRef.current.remove();
 
       const chart = createChart(chartRef.current, {
         width: chartRef.current.clientWidth,
@@ -61,12 +124,9 @@ export default function TradePage() {
       });
 
       const series = chart.addCandlestickSeries({
-        upColor: '#22c55e',
-        downColor: '#ef4444',
-        borderUpColor: '#22c55e',
-        borderDownColor: '#ef4444',
-        wickUpColor: '#22c55e',
-        wickDownColor: '#ef4444',
+        upColor: '#22c55e', downColor: '#ef4444',
+        borderUpColor: '#22c55e', borderDownColor: '#ef4444',
+        wickUpColor: '#22c55e', wickDownColor: '#ef4444',
       });
 
       series.setData(generateCandles(activePair.price, 100) as any);
@@ -75,12 +135,72 @@ export default function TradePage() {
     });
 
     return () => { cancelled = true; };
-  }, [activePair]);
+  }, [activePair.price, activePairIdx]);
 
-  const margin = (+size / leverage).toFixed(2);
+  const sizeNum = parseFloat(size) || 0;
+  const collateral = Math.floor(sizeNum / leverage);
+  const margin = collateral.toFixed(2);
   const liqPrice = side === 'long'
     ? (activePair.price * (1 - 1 / leverage * 0.9)).toFixed(4)
     : (activePair.price * (1 + 1 / leverage * 0.9)).toFixed(4);
+
+  const handleOpenPosition = async () => {
+    if (!program || !publicKey) return;
+    setTxState('building');
+    setTxError('');
+    setTxSig('');
+
+    try {
+      const exchangePDA = getExchangePDA();
+      const pairPDA = activePair.pda;
+
+      // generate random position ID
+      const positionId = Date.now();
+
+      const sizeVal = Math.floor(sizeNum * 1_000_000); // lamports
+      const collateralVal = Math.floor(sizeVal / leverage);
+
+      const sideArg = side === 'long' ? { long: {} } : { short: {} };
+
+      setTxState('signing');
+
+      const tx = await (program.methods as any)
+        .openPosition(
+          new BN(positionId),
+          sideArg,
+          new BN(sizeVal),
+          new BN(collateralVal),
+          leverage,
+        )
+        .accountsPartial({
+          exchange: exchangePDA,
+          pair: pairPDA,
+          trader: publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      setTxState('done');
+      setTxSig(tx);
+      fetchPairs();
+    } catch (err: any) {
+      setTxState('error');
+      const msg = err?.message || 'Transaction failed';
+      if (msg.includes('User rejected')) {
+        setTxError('Transaction rejected by user');
+      } else if (msg.includes('OracleStale')) {
+        setTxError('Price feed is stale — crank needs to update prices');
+      } else if (msg.includes('InsufficientCollateral')) {
+        setTxError('Insufficient collateral');
+      } else if (msg.includes('insufficient lamports')) {
+        setTxError('Insufficient SOL balance');
+      } else {
+        setTxError(msg.slice(0, 120));
+      }
+    }
+  };
+
+  const canTrade = publicKey && activePair.isActive && sizeNum > 0 && txState !== 'signing' && txState !== 'confirming';
 
   return (
     <div className="flex h-[calc(100vh-48px)]">
@@ -88,19 +208,21 @@ export default function TradePage() {
       <div className="flex-1 flex flex-col">
         {/* Pair selector */}
         <div className="flex gap-1 p-2 bg-panel border-b border-border overflow-x-auto">
-          {PAIRS.map((p) => (
+          {pairs.map((p, idx) => (
             <button
               key={p.symbol}
-              onClick={() => setActivePair(p)}
+              onClick={() => setActivePairIdx(idx)}
               className={`px-3 py-1.5 text-xs rounded whitespace-nowrap transition-colors ${
-                activePair.symbol === p.symbol ? 'bg-surface border border-border text-white' : 'text-gray-500 hover:text-gray-300'
+                activePairIdx === idx ? 'bg-surface border border-border text-white' : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               {p.symbol}
-              <span className={`ml-2 ${p.change >= 0 ? 'text-long' : 'text-short'}`}>
-                {p.change >= 0 ? '+' : ''}{p.change}%
-              </span>
+              <span className="ml-2 text-gray-600">{p.price.toFixed(4)}</span>
+              {!p.isActive && <span className="ml-1 text-yellow-600 text-[10px]">OFF</span>}
             </button>
+          ))}
+          {pairs.length === 0 && PAIRS_CONFIG.map(cfg => (
+            <span key={cfg.base} className="px-3 py-1.5 text-xs text-gray-600">{cfg.base}/{cfg.quote}</span>
           ))}
         </div>
 
@@ -109,11 +231,14 @@ export default function TradePage() {
 
         {/* Price bar */}
         <div className="flex items-center gap-6 px-4 py-2 bg-surface border-t border-border text-xs">
-          <span className="text-white font-bold text-base">{activePair.price}</span>
-          <span className="text-gray-500">Spread: {activePair.spread} pips</span>
-          <span className={activePair.change >= 0 ? 'text-long' : 'text-short'}>
-            {activePair.change >= 0 ? '+' : ''}{activePair.change}%
-          </span>
+          <span className="text-white font-bold text-base">{activePair.price.toFixed(4)}</span>
+          <span className="text-gray-500">Spread: {activePair.spread.toFixed(1)} pips</span>
+          {activePair.oiLong + activePair.oiShort > 0 && (
+            <span className="text-gray-500">
+              OI: L {(activePair.oiLong / 1_000_000).toFixed(1)} / S {(activePair.oiShort / 1_000_000).toFixed(1)}
+            </span>
+          )}
+          {activePair.isActive && <span className="text-long text-[10px]">LIVE</span>}
         </div>
       </div>
 
@@ -121,6 +246,18 @@ export default function TradePage() {
       <div className="w-72 bg-panel border-l border-border flex flex-col">
         <div className="p-4 border-b border-border">
           <h2 className="text-xs text-gray-500 font-bold tracking-wider mb-3">OPEN POSITION</h2>
+
+          {!publicKey && (
+            <div className="text-xs text-yellow-600 bg-yellow-900/20 rounded p-2 mb-3">
+              Connect wallet to trade
+            </div>
+          )}
+
+          {!activePair.isActive && publicKey && (
+            <div className="text-xs text-yellow-600 bg-yellow-900/20 rounded p-2 mb-3">
+              Pair not active on-chain
+            </div>
+          )}
 
           {/* Long/Short toggle */}
           <div className="flex gap-1 mb-4">
@@ -140,7 +277,7 @@ export default function TradePage() {
 
           {/* Size input */}
           <div className="mb-3">
-            <label className="text-xs text-gray-500 mb-1 block">Size (USDC)</label>
+            <label className="text-xs text-gray-500 mb-1 block">Size (lamports, x10^6)</label>
             <input
               value={size}
               onChange={(e) => setSize(e.target.value)}
@@ -172,11 +309,11 @@ export default function TradePage() {
           <div className="space-y-2 text-xs mb-4">
             <div className="flex justify-between">
               <span className="text-gray-500">Entry Price</span>
-              <span className="text-white">{activePair.price}</span>
+              <span className="text-white">{activePair.price.toFixed(4)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Required Margin</span>
-              <span className="text-white">{margin} USDC</span>
+              <span className="text-gray-500">Collateral</span>
+              <span className="text-white">{(collateral / 1_000_000).toFixed(4)} SOL</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Est. Liq. Price</span>
@@ -184,15 +321,43 @@ export default function TradePage() {
             </div>
           </div>
 
-          <button className={`w-full py-2.5 rounded font-bold text-sm ${side === 'long' ? 'bg-long text-black' : 'bg-short text-white'}`}>
-            {side === 'long' ? 'Open Long' : 'Open Short'}
+          <button
+            onClick={handleOpenPosition}
+            disabled={!canTrade}
+            className={`w-full py-2.5 rounded font-bold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+              side === 'long' ? 'bg-long text-black' : 'bg-short text-white'
+            }`}
+          >
+            {txState === 'signing' ? 'Signing...' :
+             txState === 'confirming' ? 'Confirming...' :
+             txState === 'building' ? 'Building...' :
+             side === 'long' ? 'Open Long' : 'Open Short'}
           </button>
+
+          {txState === 'done' && txSig && (
+            <div className="mt-2 text-xs text-long">
+              Position opened!{' '}
+              <a href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`} target="_blank" rel="noreferrer" className="underline">
+                View tx
+              </a>
+            </div>
+          )}
+
+          {txState === 'error' && txError && (
+            <div className="mt-2 text-xs text-short">{txError}</div>
+          )}
         </div>
 
-        {/* Open Positions mini */}
+        {/* Mini positions */}
         <div className="p-4 flex-1 overflow-y-auto">
           <h3 className="text-xs text-gray-500 font-bold tracking-wider mb-3">OPEN POSITIONS</h3>
-          <div className="text-xs text-gray-600 text-center py-8">No open positions</div>
+          {!publicKey ? (
+            <div className="text-xs text-gray-600 text-center py-8">Connect wallet to see positions</div>
+          ) : (
+            <div className="text-xs text-gray-600 text-center py-8">
+              See <a href="/positions" className="text-gray-400 underline">Positions</a> page
+            </div>
+          )}
         </div>
       </div>
     </div>
