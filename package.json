@@ -1,0 +1,21 @@
+{
+  "name": "forex-for-soul",
+  "version": "1.0.0",
+  "description": "Decentralized Forex perpetual contracts on Solana. Trade major currency pairs with up to 20x leverage, settled instantly on-chain.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/web3.js": "^1.98.4",
+    "typescript": "^6.0.2"
+  }
+}
