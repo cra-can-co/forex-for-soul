@@ -17,6 +17,20 @@ pub mod forexforsoul {
         instructions::initialize_exchange::handler(ctx)
     }
 
+    pub fn add_trading_pair(
+        ctx: Context<AddTradingPair>,
+        base_currency: String,
+        quote_currency: String,
+        max_leverage: u16,
+        spread_bps: u16,
+    ) -> Result<()> {
+        instructions::add_trading_pair::handler(ctx, base_currency, quote_currency, max_leverage, spread_bps)
+    }
+
+    pub fn update_price(ctx: Context<UpdatePrice>, price: u64) -> Result<()> {
+        instructions::update_price::handler(ctx, price)
+    }
+
     pub fn open_position(
         ctx: Context<OpenPosition>,
         position_id: u64,
@@ -30,5 +44,17 @@ pub mod forexforsoul {
 
     pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
         instructions::close_position::handler(ctx)
+    }
+
+    pub fn liquidate_position(ctx: Context<LiquidatePosition>) -> Result<()> {
+        instructions::liquidate_position::handler(ctx)
+    }
+
+    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u64) -> Result<()> {
+        instructions::deposit_liquidity::handler(ctx, amount)
+    }
+
+    pub fn withdraw_liquidity(ctx: Context<WithdrawLiquidity>, shares: u64) -> Result<()> {
+        instructions::withdraw_liquidity::handler(ctx, shares)
     }
 }

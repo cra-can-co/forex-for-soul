@@ -26,7 +26,7 @@ pub struct LiquidatePosition<'info> {
     )]
     pub position: Account<'info, Position>,
     /// CHECK: original trader, validated via position.trader constraint
-    pub trader: AccountInfo<'info>,
+    pub trader: UncheckedAccount<'info>,
     #[account(mut)]
     pub liquidator: Signer<'info>,
 }

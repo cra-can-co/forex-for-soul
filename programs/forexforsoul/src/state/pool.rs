@@ -10,3 +10,12 @@ pub struct LiquidityPool {
     pub fees_collected: u64,
     pub bump: u8,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct LpDeposit {
+    pub depositor: Pubkey,
+    pub shares: u64,
+    pub deposited_at: i64,
+    pub bump: u8,
+}

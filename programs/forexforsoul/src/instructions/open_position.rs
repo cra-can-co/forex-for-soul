@@ -110,10 +110,10 @@ pub fn handler(
         .checked_add(size)
         .ok_or(ForexError::MathOverflow)?;
 
-    // transfer collateral from trader to exchange PDA
+    // state updates done — now CPI transfer collateral
     system_program::transfer(
         CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
+            ctx.accounts.system_program.key(),
             system_program::Transfer {
                 from: ctx.accounts.trader.to_account_info(),
                 to: ctx.accounts.exchange.to_account_info(),
