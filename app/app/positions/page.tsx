@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
-import { useProgram, useReadonlyProgram, getExchangePDA, getPairPDA } from '../lib/useProgram';
+import { useExchange, getExchangePDA, getPairPDA } from '../lib/useProgram';
 import { PROGRAM_ID, PRICE_DECIMALS, PAIRS_CONFIG } from '../lib/constants';
 
 interface PositionView {
@@ -20,15 +20,14 @@ interface PositionView {
 
 export default function PositionsPage() {
   const { publicKey } = useWallet();
-  const { program } = useProgram();
-  const { program: readonlyProgram, connection } = useReadonlyProgram();
+  const { exchange, canSign, connection } = useExchange();
   const [positions, setPositions] = useState<PositionView[]>([]);
   const [loading, setLoading] = useState(false);
   const [closing, setClosing] = useState<string | null>(null);
   const [closeResult, setCloseResult] = useState<{ sig?: string; error?: string } | null>(null);
 
   const fetchPositions = useCallback(async () => {
-    if (!publicKey || !readonlyProgram) return;
+    if (!publicKey || !exchange) return;
     setLoading(true);
 
     try {
@@ -42,7 +41,7 @@ export default function PositionsPage() {
       const parsed: PositionView[] = [];
       for (const { pubkey, account } of accounts) {
         try {
-          const pos = (readonlyProgram.coder.accounts as any).decode('position', account.data);
+          const pos = (exchange.coder.accounts as any).decode('position', account.data);
           const pairKey = pos.pair.toBase58();
 
           // find matching pair config
@@ -77,17 +76,17 @@ export default function PositionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [publicKey, readonlyProgram, connection]);
+  }, [publicKey, exchange, connection]);
 
   useEffect(() => { fetchPositions(); }, [fetchPositions]);
 
   const handleClose = async (pos: PositionView) => {
-    if (!program || !publicKey) return;
+    if (!canSign || !publicKey) return;
     setClosing(pos.pubkey);
     setCloseResult(null);
 
     try {
-      const tx = await (program.methods as any)
+      const tx = await (exchange.methods as any)
         .closePosition()
         .accountsPartial({
           exchange: getExchangePDA(),
@@ -99,8 +98,8 @@ export default function PositionsPage() {
 
       setCloseResult({ sig: tx });
       fetchPositions();
-    } catch (err: any) {
-      const msg = err?.message || 'Close failed';
+    } catch (exc) {
+      const msg = String(exc).replace('Error: ', '');
       if (msg.includes('OracleStale')) {
         setCloseResult({ error: 'Price is stale — wait for crank update' });
       } else if (msg.includes('User rejected')) {

@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 
-mod constants;
-mod errors;
-mod instructions;
-mod state;
+pub mod constants;
+pub mod errors;
+pub mod instructions;
+pub mod state;
 
 use instructions::*;
 
@@ -27,9 +27,13 @@ pub mod forexforsoul {
         instructions::add_trading_pair::handler(ctx, base_currency, quote_currency, max_leverage, spread_bps)
     }
 
+    // ── Oracle ──
+
     pub fn update_price(ctx: Context<UpdatePrice>, price: u64) -> Result<()> {
         instructions::update_price::handler(ctx, price)
     }
+
+    // ── Trading ──
 
     pub fn open_position(
         ctx: Context<OpenPosition>,
@@ -49,6 +53,8 @@ pub mod forexforsoul {
     pub fn liquidate_position(ctx: Context<LiquidatePosition>) -> Result<()> {
         instructions::liquidate_position::handler(ctx)
     }
+
+    // ── Liquidity ──
 
     pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u64) -> Result<()> {
         instructions::deposit_liquidity::handler(ctx, amount)

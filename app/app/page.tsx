@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
-import { useProgram, useReadonlyProgram, getExchangePDA, getPairPDA } from './lib/useProgram';
+import { useExchange, getExchangePDA, getPairPDA } from './lib/useProgram';
 import { PAIRS_CONFIG, PRICE_DECIMALS, PROGRAM_ID } from './lib/constants';
 
 interface PairData {
@@ -43,8 +43,7 @@ function generateCandles(basePrice: number, count: number) {
 
 export default function TradePage() {
   const { publicKey } = useWallet();
-  const { program } = useProgram();
-  const { program: readonlyProgram } = useReadonlyProgram();
+  const { exchange, canSign, connection } = useExchange();
 
   const [pairs, setPairs] = useState<PairData[]>([]);
   const [activePairIdx, setActivePairIdx] = useState(0);
@@ -59,12 +58,12 @@ export default function TradePage() {
 
   // fetch pairs from chain
   const fetchPairs = useCallback(async () => {
-    if (!readonlyProgram) return;
+    if (!exchange) return;
     const loaded: PairData[] = [];
     for (const cfg of PAIRS_CONFIG) {
       try {
         const pda = getPairPDA(cfg.base, cfg.quote);
-        const acc = await (readonlyProgram.account as any).tradingPair.fetch(pda);
+        const acc = await (exchange.account as any).tradingPair.fetch(pda);
         const rawPrice = Number(acc.lastPrice);
         loaded.push({
           base: cfg.base,
@@ -96,7 +95,7 @@ export default function TradePage() {
       }
     }
     setPairs(loaded);
-  }, [readonlyProgram]);
+  }, [exchange]);
 
   useEffect(() => { fetchPairs(); }, [fetchPairs]);
 
@@ -145,7 +144,7 @@ export default function TradePage() {
     : (activePair.price * (1 + 1 / leverage * 0.9)).toFixed(4);
 
   const handleOpenPosition = async () => {
-    if (!program || !publicKey) return;
+    if (!canSign || !publicKey) return;
     setTxState('building');
     setTxError('');
     setTxSig('');
@@ -164,7 +163,7 @@ export default function TradePage() {
 
       setTxState('signing');
 
-      const tx = await (program.methods as any)
+      const tx = await (exchange.methods as any)
         .openPosition(
           new BN(positionId),
           sideArg,
@@ -183,9 +182,9 @@ export default function TradePage() {
       setTxState('done');
       setTxSig(tx);
       fetchPairs();
-    } catch (err: any) {
+    } catch (exc) {
       setTxState('error');
-      const msg = err?.message || 'Transaction failed';
+      const msg = String(exc).replace('Error: ', '');
       if (msg.includes('User rejected')) {
         setTxError('Transaction rejected by user');
       } else if (msg.includes('OracleStale')) {
