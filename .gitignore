@@ -1,9 +1,16 @@
 node_modules/
 .next/
 out/
+dist/
 
 .env
 .env.local
+.env.*.local
+
+# Keypairs — never commit
+deploy-keypair.json
+*-keypair.json
+id.json
 
 target/
 .anchor/
