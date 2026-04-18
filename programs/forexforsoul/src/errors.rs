@@ -14,7 +14,7 @@ pub enum ForexError {
     InsufficientCollateral,
     #[msg("Position is healthy, cannot liquidate")]
     PositionHealthy,
-    #[msg("Math overflow")]
+    #[msg("Numeric overflow in PnL computation")]
     MathOverflow,
     #[msg("Oracle price stale")]
     OracleStale,
