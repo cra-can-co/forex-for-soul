@@ -33,9 +33,10 @@ pub fn handler(
     max_leverage: u16,
     spread_bps: u16,
 ) -> Result<()> {
-    require!(base_currency.len() <= 8, ForexError::MathOverflow);
-    require!(quote_currency.len() <= 8, ForexError::MathOverflow);
+    require!(base_currency.len() <= 8, ForexError::InvalidCurrency);
+    require!(quote_currency.len() <= 8, ForexError::InvalidCurrency);
     require!(max_leverage > 0 && max_leverage <= 100, ForexError::ExcessiveLeverage);
+    require!(spread_bps <= MAX_SPREAD_BPS, ForexError::SpreadTooHigh);
 
     let pair = &mut ctx.accounts.pair;
     pair.base_currency = base_currency;
