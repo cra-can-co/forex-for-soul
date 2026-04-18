@@ -35,7 +35,10 @@
                   97,
                   110,
                   103,
-                  101
+                  101,
+                  95,
+                  118,
+                  50
                 ]
               }
             ]
@@ -52,7 +55,10 @@
                   112,
                   97,
                   105,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -123,7 +129,10 @@
                   97,
                   110,
                   103,
-                  101
+                  101,
+                  95,
+                  118,
+                  50
                 ]
               }
             ]
@@ -140,7 +149,10 @@
                   112,
                   97,
                   105,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -157,13 +169,48 @@
           }
         },
         {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "position",
+          "writable": true
+        },
+        {
+          "name": "user_usdc",
+          "writable": true
+        },
+        {
+          "name": "vault",
           "writable": true
         },
         {
           "name": "trader",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
@@ -182,6 +229,29 @@
       ],
       "accounts": [
         {
+          "name": "exchange",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  99,
+                  104,
+                  97,
+                  110,
+                  103,
+                  101,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "pool",
           "writable": true,
           "pda": {
@@ -195,7 +265,10 @@
                   112,
                   111,
                   111,
-                  108
+                  108,
+                  95,
+                  118,
+                  50
                 ]
               }
             ]
@@ -218,7 +291,10 @@
                   111,
                   115,
                   105,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -229,9 +305,21 @@
           }
         },
         {
+          "name": "depositor_usdc",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
           "name": "depositor",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
@@ -273,10 +361,129 @@
                   97,
                   110,
                   103,
-                  101
+                  101,
+                  95,
+                  118,
+                  50
                 ]
               }
             ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "exchange"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
           }
         },
         {
@@ -287,6 +494,18 @@
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": []
@@ -319,7 +538,10 @@
                   97,
                   110,
                   103,
-                  101
+                  101,
+                  95,
+                  118,
+                  50
                 ]
               }
             ]
@@ -336,7 +558,10 @@
                   112,
                   97,
                   105,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -353,16 +578,48 @@
           }
         },
         {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "position",
           "writable": true
         },
         {
-          "name": "trader"
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "liquidator_usdc",
+          "writable": true
         },
         {
           "name": "liquidator",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
@@ -395,7 +652,10 @@
                   97,
                   110,
                   103,
-                  101
+                  101,
+                  95,
+                  118,
+                  50
                 ]
               }
             ]
@@ -412,7 +672,10 @@
                   112,
                   97,
                   105,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -424,6 +687,29 @@
                 "kind": "account",
                 "path": "pair.quote_currency",
                 "account": "TradingPair"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
               }
             ]
           }
@@ -443,7 +729,10 @@
                   116,
                   105,
                   111,
-                  110
+                  110,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -462,9 +751,21 @@
           }
         },
         {
+          "name": "user_usdc",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
           "name": "trader",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
@@ -525,7 +826,10 @@
                   97,
                   110,
                   103,
-                  101
+                  101,
+                  95,
+                  118,
+                  50
                 ]
               }
             ]
@@ -542,7 +846,10 @@
                   112,
                   97,
                   105,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -584,6 +891,29 @@
       ],
       "accounts": [
         {
+          "name": "exchange",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  99,
+                  104,
+                  97,
+                  110,
+                  103,
+                  101,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "pool",
           "writable": true,
           "pda": {
@@ -597,7 +927,10 @@
                   112,
                   111,
                   111,
-                  108
+                  108,
+                  95,
+                  118,
+                  50
                 ]
               }
             ]
@@ -620,7 +953,10 @@
                   111,
                   115,
                   105,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -631,9 +967,21 @@
           }
         },
         {
+          "name": "depositor_usdc",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
           "name": "depositor",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
@@ -745,12 +1093,42 @@
     {
       "code": 6006,
       "name": "MathOverflow",
-      "msg": "Math overflow"
+      "msg": "Numeric overflow"
     },
     {
       "code": 6007,
       "name": "OracleStale",
       "msg": "Oracle price stale"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidCurrency",
+      "msg": "Currency symbol too long (max 8 bytes)"
+    },
+    {
+      "code": 6009,
+      "name": "SpreadTooHigh",
+      "msg": "Spread exceeds maximum allowed"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidVault",
+      "msg": "Vault account does not match exchange configuration"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidUsdcMint",
+      "msg": "USDC mint mismatch"
+    },
+    {
+      "code": 6012,
+      "name": "PoolEmpty",
+      "msg": "Pool has no liquidity"
+    },
+    {
+      "code": 6013,
+      "name": "InsufficientShares",
+      "msg": "Insufficient LP shares"
     }
   ],
   "types": [
@@ -764,7 +1142,7 @@
             "type": "pubkey"
           },
           {
-            "name": "lp_mint",
+            "name": "usdc_mint",
             "type": "pubkey"
           },
           {
@@ -777,6 +1155,10 @@
           },
           {
             "name": "total_volume",
+            "type": "u64"
+          },
+          {
+            "name": "total_fees_collected",
             "type": "u64"
           },
           {
@@ -888,11 +1270,7 @@
             "type": "u16"
           },
           {
-            "name": "unrealized_pnl",
-            "type": "i64"
-          },
-          {
-            "name": "borrowing_fee_accrued",
+            "name": "fees_paid",
             "type": "u64"
           },
           {

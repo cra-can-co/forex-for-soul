@@ -3,10 +3,13 @@ import { useConnection, useAnchorWallet } from '@solana/wallet-adapter-react';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import idl from '../idl.json';
-import { PROGRAM_ID } from './constants';
+import { EXCHANGE_SEED, PAIR_SEED, POOL_SEED, POSITION_SEED, PROGRAM_ID, USDC_MINT } from './constants';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 
 function createProvider(conn: Connection, signer?: any): AnchorProvider {
-  if (signer) return new AnchorProvider(conn, signer, { commitment: 'confirmed', skipPreflight: true });
+  // NOTE: preflight simulation is intentionally kept ON so wallet prompts surface
+  // program errors (InsufficientCollateral, OracleStale, etc.) before signing.
+  if (signer) return new AnchorProvider(conn, signer, { commitment: 'confirmed' });
   const ephemeral = Keypair.generate();
   return new AnchorProvider(conn, {
     publicKey: ephemeral.publicKey,
@@ -30,17 +33,19 @@ export function useExchange() {
 }
 
 export function getExchangePDA(): PublicKey {
-  const [pda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('exchange')],
-    PROGRAM_ID
-  );
+  const [pda] = PublicKey.findProgramAddressSync([EXCHANGE_SEED], PROGRAM_ID);
+  return pda;
+}
+
+export function getPoolPDA(): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync([POOL_SEED], PROGRAM_ID);
   return pda;
 }
 
 export function getPairPDA(base: string, quote: string): PublicKey {
   const [pda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('pair'), Buffer.from(base), Buffer.from(quote)],
-    PROGRAM_ID
+    [PAIR_SEED, Buffer.from(base), Buffer.from(quote)],
+    PROGRAM_ID,
   );
   return pda;
 }
@@ -50,8 +55,18 @@ export function getPositionPDA(trader: PublicKey, pair: PublicKey, positionId: n
   const view = new DataView(buf.buffer);
   view.setBigUint64(0, BigInt(positionId), true);
   const [pda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('position'), trader.toBytes(), pair.toBytes(), buf],
-    PROGRAM_ID
+    [POSITION_SEED, trader.toBytes(), pair.toBytes(), buf],
+    PROGRAM_ID,
   );
   return pda;
+}
+
+// Vault ATA is deterministic from the exchange PDA + USDC mint.
+export function getVaultAta(): PublicKey {
+  return getAssociatedTokenAddressSync(USDC_MINT, getExchangePDA(), true);
+}
+
+// User's USDC ATA.
+export function getUserUsdcAta(owner: PublicKey): PublicKey {
+  return getAssociatedTokenAddressSync(USDC_MINT, owner);
 }
