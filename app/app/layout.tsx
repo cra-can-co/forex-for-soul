@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
             <div className="hr-brass" />
           </header>
-          <main>{children}</main>
+          <main className="overflow-x-hidden">{children}</main>
         </SolanaProviders>
       </body>
     </html>
