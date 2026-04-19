@@ -7,7 +7,12 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "init": "ts-node --transpile-only scripts/init-devnet.ts",
+    "crank": "ts-node --transpile-only scripts/push-prices.ts",
+    "dev": "cd app && npm run dev",
+    "build": "cd app && npm run build",
+    "start": "cd app && npm run start",
+    "test": "echo \"No unit tests — verify on devnet (see README)\" && exit 0"
   },
   "keywords": [],
   "author": "",
@@ -17,5 +22,10 @@
     "@coral-xyz/anchor": "^0.32.1",
     "@solana/web3.js": "^1.98.4",
     "typescript": "^6.0.2"
+  },
+  "devDependencies": {
+    "@solana/spl-token": "^0.4.14",
+    "@types/node": "^25.6.0",
+    "ts-node": "^10.9.2"
   }
 }
