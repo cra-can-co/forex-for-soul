@@ -14,8 +14,20 @@ pub enum ForexError {
     InsufficientCollateral,
     #[msg("Position is healthy, cannot liquidate")]
     PositionHealthy,
-    #[msg("Numeric overflow in PnL computation")]
+    #[msg("Numeric overflow")]
     MathOverflow,
     #[msg("Oracle price stale")]
     OracleStale,
+    #[msg("Currency symbol too long (max 8 bytes)")]
+    InvalidCurrency,
+    #[msg("Spread exceeds maximum allowed")]
+    SpreadTooHigh,
+    #[msg("Vault account does not match exchange configuration")]
+    InvalidVault,
+    #[msg("USDC mint mismatch")]
+    InvalidUsdcMint,
+    #[msg("Pool has no liquidity")]
+    PoolEmpty,
+    #[msg("Insufficient LP shares")]
+    InsufficientShares,
 }
