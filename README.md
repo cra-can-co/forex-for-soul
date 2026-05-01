@@ -69,6 +69,30 @@ app/components/          ChartDesk, FlipNumber, LeverageDial, MarketClock,
 tests/                   no unit tests — devnet E2E only
 ```
 
+## Risk Disclaimer
+
+**Devnet only.** This program is deployed on Solana devnet for educational
+and demonstration purposes. The SOL used is faucet-issued and has no real
+monetary value.
+
+Perpetual futures are inherently risky:
+
+- **Leverage amplifies losses.** A 10× position closes at zero on a 10 % adverse
+  move minus liquidation buffer. Don't trade what you can't afford to lose, and
+  certainly don't bring this design to mainnet without a proper audit.
+- **Funding rates can go negative.** Holding a position over time may cost you
+  even when price doesn't move.
+- **Oracle dependency.** Resolution and liquidation use Pyth feeds — feed
+  outages, stale prices, or oracle manipulation can lead to unfair fills. The
+  contract enforces a `max_age_seconds` guard but cannot prevent every edge.
+- **Liquidation is permissionless.** Anyone can crank a liquidation when health
+  drops below threshold. The bounty incentivises racing, which is intentional
+  but can produce surprising outcomes for under-collateralised positions.
+
+This software is provided **as-is**, without warranty. Forks intending mainnet
+deployment must commission an independent security review and add price-band /
+circuit-breaker controls.
+
 ## License
 
 MIT.
