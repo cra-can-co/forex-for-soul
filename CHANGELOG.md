@@ -1,5 +1,11 @@
 # changelog
 
+## v0.5.1 — risk policy + pair registry
+
+- supported pairs registry doc with 4 fx + 1 experimental gold contract
+- risk disclaimer covering liquidation, funding decay, oracle outages, sizing rules
+- env example updated with pyth feed + funding interval keys
+
 ## v0.5 — phase 5: live perps on devnet
 
 - contract deployed to devnet — `ERSbyEx6s4MJnAem1vjmZW8Wv2cQdx1U4Fytuo6qy8ro`
