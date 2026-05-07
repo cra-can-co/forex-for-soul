@@ -95,7 +95,4 @@ circuit-breaker controls.
 
 ## License
 
-Code is released under MIT — see [LICENSE](LICENSE) for the full text. The licence
-covers the source only; it does not constitute financial advice and does not
-override the Risk Disclaimer above. Treat any deployment as paper-trading on
-devnet until a forked build clears its own audit and risk-control review.
+MIT.

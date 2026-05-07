@@ -1,9 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/api/faucet",
-      "destination": "https://crank-production-e345.up.railway.app/faucet"
-    }
-  ]
-}
