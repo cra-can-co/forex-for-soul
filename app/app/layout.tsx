@@ -6,6 +6,16 @@ import { WalletPill } from './WalletPill';
 export const metadata = {
   title: 'Forex for Soul — Night Desk',
   description: 'A mystic trading desk for decentralised FX perpetuals on Solana. Live Pyth quotes. Real TradingView charts. Devnet-settled positions.',
+  openGraph: {
+    title: 'Forex for Soul · FX Perpetuals on Solana',
+    description: 'A mystic trading desk for decentralised FX perpetuals on Solana.',
+    type: 'website',
+    images: ['/og.svg'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/og.svg'],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

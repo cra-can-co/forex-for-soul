@@ -2,6 +2,8 @@
 
 Decentralised Forex perpetuals on Solana, settled on-chain against live Pyth oracle prints.
 
+**Live trading desk (devnet):** [forex-for-soul.vercel.app](https://forex-for-soul.vercel.app) — connect Phantom / Solflare on devnet, request the airdrop, pick a pair.
+
 Trade EUR/USD, GBP/USD, USD/JPY, and AUD/USD with up to 20× leverage. Positions open and close on devnet; price feed is cranked from Pyth Hermes every ~8s. Chart, SL/TP overlays, auto-executor, market-hours banner, and a points ledger are all wired client-side.
 
 ## What runs where
@@ -95,4 +97,7 @@ circuit-breaker controls.
 
 ## License
 
-MIT.
+Code is released under MIT — see [LICENSE](LICENSE) for the full text. The licence
+covers the source only; it does not constitute financial advice and does not
+override the Risk Disclaimer above. Treat any deployment as paper-trading on
+devnet until a forked build clears its own audit and risk-control review.
