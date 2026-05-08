@@ -174,15 +174,13 @@ export function ChartDesk({ pythSymbol, livePrice, precision, lines, height = 40
         },
       });
 
-      // brighter wick stops for visibility against the brass/oak background.
-      // the muted wick colors made shadow ranges hard to read on tight spreads.
       const series = chart.addCandlestickSeries({
         upColor: '#9ab973',
         downColor: '#c45a4f',
-        borderUpColor: '#b9d99a',
-        borderDownColor: '#e07f74',
-        wickUpColor: '#c4e09e',
-        wickDownColor: '#f49a8e',
+        borderUpColor: '#9ab973',
+        borderDownColor: '#c45a4f',
+        wickUpColor: '#9ab973',
+        wickDownColor: '#c45a4f',
         priceFormat: { type: 'price', precision, minMove: Math.pow(10, -precision) },
       });
 

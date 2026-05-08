@@ -90,7 +90,7 @@ export default function VaultPage() {
           {/* Folio notes */}
           <div className="mt-10 border-t border-rule pt-6 space-y-5">
             <Note title="I — Provision" body="Deposit becomes a pro-rata claim on the vault — no lockup." />
-            <Note title="II — Collect" body="Funding (charged 8h, longs ↔ shorts based on OI imbalance), spread fees, and trader P&L are all netted against your share before any withdrawal settles." />
+            <Note title="II — Collect" body="Funding, spread fees, and trader P&L are all netted against your share." />
             <Note title="III — Retrieve" body="Withdraw in whole or in parts, at any hour of the night." />
           </div>
         </div>
